@@ -1,0 +1,68 @@
+# CI/CD Compliance Automator API - Se dispara con tags "v*"
+name: CI/CD Compliance Automator API
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  DOCKER_IMAGE: madu1206/qaautomation-api
+  INFRA_REPO: jose9410/koncilia-infra
+  VALUES_FILE: charts/qa-automation-api/values.yaml
+
+jobs:
+  # Construir imagen Docker y subirla a Docker Hub
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Extraer versión del tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Login en Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build y Push de imagen
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.VERSION }}
+            ${{ env.DOCKER_IMAGE }}:latest
+
+  # Actualizar values.yaml en el repo de infra para que Argo CD despliegue
+  update-infra:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extraer versión del tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Checkout repo de infra
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.INFRA_REPO }}
+          token: ${{ secrets.INFRA_REPO_PAT }}
+          ref: main
+
+      - name: Actualizar tag en values.yaml
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          sed -i "s/tag: \".*\"/tag: \"${VERSION}\"/" ${{ env.VALUES_FILE }}
+
+      - name: Commit y Push
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add ${{ env.VALUES_FILE }}
+          git commit -m "chore(compliance): update image tag to ${{ steps.version.outputs.VERSION }}"
+          git push
