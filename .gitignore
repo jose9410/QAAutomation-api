@@ -1,0 +1,27 @@
+## .NET Core
+[Bb]in/
+[Oo]bj/
+
+## Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## User Secrets
+appsettings.Development.json
+secrets.json
+appsettings.json
+
+## Playwright / Browser binaries (already in Docker, no need to track locally)
+.playwright/
+ms-playwright/
+
+## Log files
+*.log
+logs/
+
+## OS Files
+.DS_Store
+Thumbs.db
