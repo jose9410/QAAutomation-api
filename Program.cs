@@ -12,6 +12,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using QAAutomation.Api.Observability;
 using QAAutomation.Api.Services;
+using QAAutomation.Api.Middlewares;
 using Microsoft.Playwright;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -139,6 +140,8 @@ if (app.Environment.IsDevelopment())
 
 // Prometheus scrape endpoint
 app.MapPrometheusScrapingEndpoint("/metrics");
+
+app.UseMiddleware<ChaosLatencyMiddleware>();
 
 app.MapControllers();
 
